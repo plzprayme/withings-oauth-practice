@@ -1,6 +1,5 @@
 package com.example.withings;
 
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,13 +17,14 @@ public class OAuthController {
     }
 
     @GetMapping("/get_token")
-    public OAuthClient.GetAccessTokenResponseDto a(
+    public OAuthClient.GetJwtTokenResponseDto a(
             @RequestParam String code,
             @RequestParam String state
     ) throws NoSuchAlgorithmException, InvalidKeyException {
-        OAuthClient.GetAccessTokenResponseDto a = client.auth(code);
-//        OAuthClient.ASD a = client.getNonce().bodyToMono(OAuthClient.ASD.class).block();
-        return a;
+        OAuthClient.GetJwtTokenResponseDto a = client.auth(code);
+        OAuthClient.GetJwtTokenResponseDto b = client.refresh(a.body.refresh_token);
+        return b;
     }
+
 
 }

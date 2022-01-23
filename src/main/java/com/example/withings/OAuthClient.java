@@ -21,13 +21,13 @@ public class OAuthClient {
     @Value("${withings.client-secret}")
     private String clientSecret;
 
-    public GetAccessTokenResponseDto auth(final String code) throws NoSuchAlgorithmException, InvalidKeyException {
+    public GetJwtTokenResponseDto auth(final String code) throws NoSuchAlgorithmException, InvalidKeyException {
         GetNonceResponseDtoWrapper nonceDto = getNonce();
-        GetAccessTokenResponseDto accessToken = getAccessToken(code, nonceDto.signature, nonceDto.nonce);
+        GetJwtTokenResponseDto accessToken = getAccessToken(code, nonceDto.signature, nonceDto.nonce);
         return accessToken;
     }
 
-    private GetAccessTokenResponseDto getAccessToken(
+    private GetJwtTokenResponseDto getAccessToken(
             final String code,
             final String nonce,
             final String signature
@@ -47,12 +47,36 @@ public class OAuthClient {
 
         WebClient.RequestBodyUriSpec request = client.post();
         request.body(BodyInserters.fromValue(body));
-        return request.retrieve().bodyToMono(GetAccessTokenResponseDto.class).block();
+        return request.retrieve().bodyToMono(GetJwtTokenResponseDto.class).block();
     }
 
-    static class GetAccessTokenResponseDto {
+    public GetJwtTokenResponseDto refresh(String refreshToken) {
+        WebClient client = WebClient.builder()
+                .baseUrl("https://wbsapi.withings.net/v2/oauth2")
+                .build();
+
+        final String action = "requesttoken";
+        LinkedHashMap<String, String> body = new LinkedHashMap<>();
+        body.put("action", action);
+        body.put("client_id", clientId);
+        body.put("client_secret", clientSecret);
+        body.put("grant_type", "refresh_token");
+        body.put("refresh_token", refreshToken);
+
+        WebClient.RequestBodyUriSpec request = client.post();
+        request.body(BodyInserters.fromValue(body));
+        WebClient.ResponseSpec a = request.retrieve();
+        return a.bodyToMono(GetJwtTokenResponseDto.class).block();
+    }
+
+    static class GetJwtTokenResponseDto {
         Integer status;
+        String error;
         Body body;
+
+        public String getError() {
+            return error;
+        }
 
         public Integer getStatus() {
             return status;
@@ -62,7 +86,7 @@ public class OAuthClient {
             return body;
         }
 
-        private static class Body {
+        static class Body {
             String userid;
             String access_token;
             String refresh_token;
